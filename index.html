@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Home</title>
+    </head>
+    <body>
+        <h3>Home Page</h3>
+        <form action="/addUser" method="POST">
+            <label for="name">Name:</label>
+            <input name="name" type="text" id="name" required />
+
+            <label for="email">Email:</label>
+            <input name="email" type="email" id="emailid" required />
+
+            <input type="submit" id="btnSubmit" value="submit" />
+        </form>
+
+        <dialog class="modal">
+            <p><strong>This will permanantly remove the user</strong></p>
+            <button class="deleteConfirm">Confirm</button>
+            <button class="closeModal">Close</button>
+        </dialog>
+
+        <h3>Users</h3>
+        {content}
+
+        <script>
+            const modal = document.querySelector(".modal");
+            const closeModal = document.querySelector(".closeModal");
+
+            let selectedDeleteRoute = null;
+
+            document.addEventListener("click", (e) => {
+                if (e.target.matches(".showModal")) {
+                    selectedDeleteRoute = e.target.dataset.deleteRoute;
+                    modal.showModal();
+                }
+
+                if (e.target.matches(".deleteConfirm")) {
+                    // delete the particular user
+                    window.location.href = selectedDeleteRoute;
+                    console.log("Confirm Delete");
+                    modal.close();
+                }
+            });
+
+            closeModal.addEventListener("click", () => {
+                modal.close();
+            });
+        </script>
+
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+    </body>
+</html>

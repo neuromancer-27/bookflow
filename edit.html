@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Edit</title>
+    </head>
+    <body>
+        <h3>Edit Page</h3>
+        <form action="/editUser" method="POST">
+            <input type="hidden" name="id" value="{id}"></input>
+            <label for="name">Name:</label>
+            <input type="text" name="name" value="{name}" required />
+
+            <label for="email">Email:</label>
+            <input type="text" name="email" value="{email}" required />
+
+            <input type="submit" id="btnSubmit" value="submit" />
+        </form>
+
+        <p>ID: {idnum}</p>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+    </body>
+</html>
