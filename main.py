@@ -4,6 +4,7 @@ import re
 
 from build_user_html import build_user_html
 from credentials_validation import is_email_valid, is_name_valid
+from database import con, cursor
 from read_user_data import read_user_data
 
 
@@ -97,14 +98,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
                     # handle index.html
                     if filename == "index.html":
-                        if not os.path.exists("userdata.txt"):
+                        if not os.path.exists("users.db"):
                             self.send_response(500)
                             self.end_headers()
                             self.wfile.write(b"Not Found")
                             return
 
-                        with open("userdata.txt", "r") as f:
-                            users_info = f.read()
+                        # with open("userdata.txt", "r") as f:
+                        #     users_info = f.read()
+
+                        cursor.execute("SELECT * FROM users")
+                        users_info = cursor.fetchall()
 
                         users_html = build_user_html(users_info)
                         final_page = data.decode("utf-8").replace(
@@ -123,7 +127,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except Exception:
                 self.send_response(500)
                 self.end_headers()
-                self.wfile.write(b"Server Error")
+                self.wfile.write(b"Server ErrorDB")
+                return
         else:
             self.send_response(404)
             self.end_headers()
@@ -162,14 +167,19 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(b"Invalid Name")
                 return
 
-            user_data = f"name:{name}|email:{email}\n"
+            # user_data = f"name:{name}|email:{email}\n"
 
             try:
-                with open("userdata.txt", "a") as f:
-                    f.write(user_data)
+                # with open("userdata.txt", "a") as f:
+                #     f.write(user_data)
+
+                cursor.execute(
+                    "INSERT INTO users (name, email) VALUES (?, ?)", (name, email)
+                )
+                con.commit()
 
                 self.send_response(200)
-                self.send_header("Content-Type", "text/html")
+                # self.send_header("Content-Type", "text/html")
                 self.end_headers()
                 self.wfile.write(b"<h1>User Added</h1><a href='/'>Home</a>")
                 return

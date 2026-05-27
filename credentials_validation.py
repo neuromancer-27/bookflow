@@ -7,5 +7,5 @@ def is_email_valid(email):
 
 
 def is_name_valid(name):
-    regex = r"^[a-zA-Z0-9]+$"
+    regex = r"^[a-zA-Z0-9 ]+$"
     return bool(re.fullmatch(regex, name))
