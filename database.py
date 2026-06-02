@@ -5,20 +5,26 @@ con = sqlite3.connect("users.db")
 # con.row_factory = sqlite3.Row
 cursor = con.cursor()
 
-cursor.execute("CREATE TABLE if not exists users(name TEXT, email TEXT UNIQUE)")
+cursor.execute("""
+    CREATE TABLE if not exists users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL
+    )
+""")
 
-data = [
-    ("Legolas Greenleaf", "legolas.greenleaf@mirkwood.net"),
-    ("Katniss Everdeen", "katniss.everdeen@panemmail.com"),
-    ("Bilbo Baggins", "bilbo.baggins@shiremail.com"),
-    ("Jay Gatsby", "jay.gatsby@westegg.com"),
-]
+# data = [
+#     ("Legolas Greenleaf", "legolas.greenleaf@mirkwood.net"),
+#     ("Katniss Everdeen", "katniss.everdeen@panemmail.com"),
+#     ("Bilbo Baggins", "bilbo.baggins@shiremail.com"),
+#     ("Jay Gatsby", "jay.gatsby@westegg.com"),
+# ]
 
-cursor.executemany("INSERT OR IGNORE INTO users VALUES (?, ?)", data)
-con.commit()
+# cursor.executemany("INSERT OR IGNORE INTO users (name, email) VALUES (?, ?)", data)
+# con.commit()
 
-# result = cursor.execute("SELECT * FROM users")
-# print(result.fetchall())
+result = cursor.execute("SELECT * FROM users")
+print(result.fetchall())
 # con.close()
 
 # new_con = sqlite3.connect("users.db")

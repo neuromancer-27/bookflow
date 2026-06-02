@@ -13,54 +13,61 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         # handle deleting User
         path = self.path
-        regex = r"^/delete/[0-9]+$"
+        regex = r"^/delete/[1-9]+$"
 
         if re.fullmatch(regex, path):
-            with open("userdata.txt", "r") as f:
-                stored_user_data = f.read().strip().split("\n")
-
             item_id = int(path.split("/")[2])
 
-            if (
-                item_id < 0
-                or item_id >= len(stored_user_data)
-                or stored_user_data == ""
-            ):
+            cursor.execute("SELECT name, email FROM users WHERE id = ?", (item_id,))
+            req_user_to_delete = cursor.fetchone()
+
+            if req_user_to_delete is None:
                 self.send_response(404)
                 self.send_header("Content-Type", "text/html")
                 self.end_headers()
                 self.wfile.write(b"Index not valid OR Item already deleted")
                 return
 
-            stored_user_data.remove(stored_user_data[item_id])
-
-            with open("userdata.txt", "w") as f:
-                f.write("\n".join(stored_user_data) + "\n")
+            cursor.execute("DELETE FROM users WHERE id = ?", (item_id,))
+            con.commit()
 
             self.send_response(303)
             self.send_header("Location", "/")
             self.end_headers()
-            # self.wfile.write(
-            #     "<p><strong>User Deleted</strong></p> <a href='/'>Home</a>".encode(
-            #         "utf-8"
-            #     )
-            # )
             return
 
         # handle dynamic route
         path = self.path
-        regex = r"^/edit/[0-9]+$"
+        regex = r"^/edit/[1-9]+$"
 
+        # if id matches the regex
         if re.fullmatch(regex, path):
+            # open edit.html page
             with open("edit.html", "rb") as f:
                 edit_page_data = f.read()
 
+            # extract the id form the incoming route
             item_id = int(path.split("/")[2])
 
             try:
-                requested_user = read_user_data(item_id)
-                req_user_name = requested_user["name"]
-                req_user_email = requested_user["email"]
+                # fetch all the data from the table
+                cursor.execute("SELECT * FROM users WHERE id = ?", (item_id,))
+                # users_info_in_list_of_tuples = cursor.fetchall()
+
+                # requested_user = users_info_in_list_of_tuples[item_id]
+                requested_user = cursor.fetchone()
+                if requested_user is None:
+                    self.send_response(404)
+                    self.send_header("Content/Type", "text/html")
+                    self.end_headers()
+                    self.wfile.write(b"ID not valid")
+
+                req_user_name = requested_user[1]
+                req_user_email = requested_user[2]
+
+                # requested_user = read_user_data(item_id)
+                # req_user_name = requested_user["name"]
+                # req_user_email = requested_user["email"]
 
                 edit_page = (
                     edit_page_data.decode("utf-8")
@@ -192,8 +199,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         # handle edit username
         if self.path == "/editUser":
             # get stored data
-            with open("userdata.txt", "r") as f:
-                stored_user_data = f.read().strip().split("\n")
+            # with open("userdata.txt", "r") as f:
+            #     stored_user_data = f.read().strip().split("\n")
 
             # get edited data
             edited_content_length = int(self.headers.get("Content-Length", 0))
@@ -207,24 +214,24 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             parsed = parse_qs(raw_edited_data_body)
 
             try:
-                selected_item_id = int(parsed.get("id", [""])[0])
+                edited_item_id = int(parsed.get("id", [""])[0])
             except ValueError:
                 self.send_response(404)
                 self.end_headers()
                 self.wfile.write(f"Invalid id: {parsed}".encode("utf-8"))
                 return
 
-            selected_item_name = parsed.get("name", [""])[0]
-            selected_item_email = parsed.get("email", [""])[0]
+            edited_item_name = parsed.get("name", [""])[0]
+            edited_item_email = parsed.get("email", [""])[0]
 
-            if not is_email_valid(selected_item_email):
+            if not is_email_valid(edited_item_email):
                 self.send_response(400)
                 self.send_header("Content-Type", "text/html")
                 self.end_headers()
                 self.wfile.write(b"Invalid Email")
                 return
 
-            if not is_name_valid(selected_item_name):
+            if not is_name_valid(edited_item_name):
                 self.send_response(400)
                 self.send_header("Content-Type", "text/html")
                 self.end_headers()
@@ -232,9 +239,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             try:
-                if (
-                    stored_user_data[selected_item_id]
-                    == f"name:{selected_item_name}|email:{selected_item_email}"
+                cursor.execute(
+                    "SELECT name, email FROM users WHERE id = ?", (edited_item_id,)
+                )
+                user_data_from_table = cursor.fetchone()
+
+                if user_data_from_table == (
+                    edited_item_name,
+                    edited_item_email,
                 ):
                     self.send_response(200)
                     self.send_header("Content-Type", "text/html")
@@ -242,12 +254,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     self.wfile.write(b"<p>No changes made</p> <a href='/'>Home</a>")
                     return
 
-                stored_user_data[selected_item_id] = (
-                    f"name:{selected_item_name}|email:{selected_item_email}"
+                cursor.execute(
+                    "UPDATE users SET name = ?, email = ? WHERE id = ?",
+                    (edited_item_name, edited_item_email, edited_item_id),
                 )
-
-                with open("userdata.txt", "w") as f:
-                    f.write("\n".join(stored_user_data) + "\n")
+                con.commit()
 
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html")
@@ -259,11 +270,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "text/html")
                 self.end_headers()
                 self.wfile.write(b"<p>User not found</p> <a href ='/'>Home</a>")
+                return
 
         else:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Not Found")
+            return
 
     def log_message(self, format, *args):
         pass
