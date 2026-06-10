@@ -1,3 +1,4 @@
+import http.cookies
 import http.server
 import os
 import re
@@ -5,17 +6,44 @@ import re
 from build_user_html import build_user_html
 from credentials_validation import is_email_valid, is_name_valid
 from database import con, cursor
-from read_user_data import read_user_data
+
+# from read_user_data import read_user_data
+
+COOKIE_NAME = "message"
+COOKIE_VALUE = "youshallpass"
 
 
 class MyHandler(http.server.BaseHTTPRequestHandler):
     # handle all GET requests
     def do_GET(self):
+        # show login page
+        if self.path == "/login":
+            with open("login.html", "rb") as f:
+                login_page = f.read()
+
+            final_page = login_page.decode("utf-8").replace("{message}", "")
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write(final_page.encode("utf-8"))
+
         # handle deleting User
         path = self.path
         regex = r"^/delete/[1-9]+$"
 
         if re.fullmatch(regex, path):
+            # check for cookie
+            cookie_header = self.headers.get("Cookie", "")
+            cookie = http.cookies.SimpleCookie()
+            cookie.load(cookie_header)
+
+            if COOKIE_NAME not in cookie:
+                self.send_response(303)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
             item_id = int(path.split("/")[2])
 
             cursor.execute("SELECT name, email FROM users WHERE id = ?", (item_id,))
@@ -42,6 +70,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
         # if id matches the regex
         if re.fullmatch(regex, path):
+            # check for cookie
+            cookie_header = self.headers.get("Cookie", "")
+            cookie = http.cookies.SimpleCookie()
+            cookie.load(cookie_header)
+
+            if COOKIE_NAME not in cookie:
+                self.send_response(303)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
             # open edit.html page
             with open("edit.html", "rb") as f:
                 edit_page_data = f.read()
@@ -105,6 +144,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
                     # handle index.html
                     if filename == "index.html":
+                        # check for cookie
+                        cookie_header = self.headers.get("Cookie", "")
+                        cookie = http.cookies.SimpleCookie()
+                        cookie.load(cookie_header)
+
+                        if COOKIE_NAME not in cookie:
+                            self.send_response(303)
+                            self.send_header("Location", "/login")
+                            self.end_headers()
+                            return
+
                         if not os.path.exists("users.db"):
                             self.send_response(500)
                             self.end_headers()
@@ -144,7 +194,54 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
 
+        if self.path == "/authenticate":
+            username_admin = "admin"
+            password_admin = "gandalf"
+
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length).decode("utf-8")
+
+            from urllib.parse import parse_qs
+
+            parsed = parse_qs(raw_body)
+
+            username = parsed.get("username", [""])[0]
+            password = parsed.get("password", [""])[0]
+
+            if username == username_admin and password == password_admin:
+                self.send_response(303)
+                self.send_header("Location", "/")
+                self.send_header(
+                    "Set-Cookie", f"{COOKIE_NAME}={COOKIE_VALUE}; Path=/; HttpOnly"
+                )
+                self.end_headers()
+                return
+
+            with open("login.html", "rb") as f:
+                login_page = f.read()
+
+            final_page = login_page.decode("utf-8").replace(
+                "{message}", "Username or Password Incorrect"
+            )
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write(final_page.encode("utf-8"))
+            return
+
         if self.path == "/addUser":
+            # check for cookie
+            cookie_header = self.headers.get("Cookie", "")
+            cookie = http.cookies.SimpleCookie()
+            cookie.load(cookie_header)
+
+            if COOKIE_NAME not in cookie:
+                self.send_response(303)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
             # get the exact no.of bytes to read
             content_length = int(self.headers.get("Content-Length", 0))
 
@@ -198,6 +295,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
         # handle edit username
         if self.path == "/editUser":
+            # check for cookie
+            cookie_header = self.headers.get("Cookie", "")
+            cookie = http.cookies.SimpleCookie()
+            cookie.load(cookie_header)
+
+            if COOKIE_NAME not in cookie:
+                self.send_response(303)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
             # get stored data
             # with open("userdata.txt", "r") as f:
             #     stored_user_data = f.read().strip().split("\n")
