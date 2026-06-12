@@ -4,13 +4,22 @@ import os
 import re
 
 from build_user_html import build_user_html
-from credentials_validation import is_email_valid, is_name_valid
+from credentials_validation import is_email_valid, is_name_valid, is_password_valid
 from database import con, cursor
 
 # from read_user_data import read_user_data
 
 COOKIE_NAME = "message"
 COOKIE_VALUE = "youshallpass"
+
+
+# cookie check helper
+def is_authenticated(self):
+    cookie_headers = self.headers.get("Cookie", "")
+    cookie = http.cookies.SimpleCookie()
+    cookie.load(cookie_headers)
+
+    return COOKIE_NAME in cookie and cookie[COOKIE_NAME].value == COOKIE_VALUE
 
 
 class MyHandler(http.server.BaseHTTPRequestHandler):
@@ -34,11 +43,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
         if re.fullmatch(regex, path):
             # check for cookie
-            cookie_header = self.headers.get("Cookie", "")
-            cookie = http.cookies.SimpleCookie()
-            cookie.load(cookie_header)
-
-            if COOKIE_NAME not in cookie:
+            if not is_authenticated(self):
                 self.send_response(303)
                 self.send_header("Location", "/login")
                 self.end_headers()
@@ -46,7 +51,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
             item_id = int(path.split("/")[2])
 
-            cursor.execute("SELECT name, email FROM users WHERE id = ?", (item_id,))
+            cursor.execute(
+                "SELECT name, email, password FROM users WHERE id = ?", (item_id,)
+            )
             req_user_to_delete = cursor.fetchone()
 
             if req_user_to_delete is None:
@@ -71,11 +78,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         # if id matches the regex
         if re.fullmatch(regex, path):
             # check for cookie
-            cookie_header = self.headers.get("Cookie", "")
-            cookie = http.cookies.SimpleCookie()
-            cookie.load(cookie_header)
-
-            if COOKIE_NAME not in cookie:
+            if not is_authenticated(self):
                 self.send_response(303)
                 self.send_header("Location", "/login")
                 self.end_headers()
@@ -91,22 +94,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             try:
                 # fetch all the data from the table
                 cursor.execute("SELECT * FROM users WHERE id = ?", (item_id,))
-                # users_info_in_list_of_tuples = cursor.fetchall()
 
-                # requested_user = users_info_in_list_of_tuples[item_id]
                 requested_user = cursor.fetchone()
                 if requested_user is None:
-                    self.send_response(404)
+                    self.send_response(400)
                     self.send_header("Content/Type", "text/html")
                     self.end_headers()
                     self.wfile.write(b"ID not valid")
 
                 req_user_name = requested_user[1]
                 req_user_email = requested_user[2]
-
-                # requested_user = read_user_data(item_id)
-                # req_user_name = requested_user["name"]
-                # req_user_email = requested_user["email"]
+                req_user_password = requested_user[3]
 
                 edit_page = (
                     edit_page_data.decode("utf-8")
@@ -114,6 +112,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     .replace("{id}", str(item_id))
                     .replace("{name}", f"{req_user_name}")
                     .replace("{email}", f"{req_user_email}")
+                    .replace("{password}", f"{req_user_password}")
                 )
 
                 self.send_response(200)
@@ -145,11 +144,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     # handle index.html
                     if filename == "index.html":
                         # check for cookie
-                        cookie_header = self.headers.get("Cookie", "")
-                        cookie = http.cookies.SimpleCookie()
-                        cookie.load(cookie_header)
-
-                        if COOKIE_NAME not in cookie:
+                        if not is_authenticated(self):
                             self.send_response(303)
                             self.send_header("Location", "/login")
                             self.end_headers()
@@ -208,7 +203,18 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             username = parsed.get("username", [""])[0]
             password = parsed.get("password", [""])[0]
 
-            if username == username_admin and password == password_admin:
+            cursor.execute("SELECT * FROM users")
+            stored_users = cursor.fetchall()
+
+            in_stored_users = False
+            for user in stored_users:
+                if username == user[1] and password == user[3]:
+                    in_stored_users = True
+                    break
+
+            if in_stored_users or (
+                username == username_admin and password == password_admin
+            ):
                 self.send_response(303)
                 self.send_header("Location", "/")
                 self.send_header(
@@ -232,11 +238,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
         if self.path == "/addUser":
             # check for cookie
-            cookie_header = self.headers.get("Cookie", "")
-            cookie = http.cookies.SimpleCookie()
-            cookie.load(cookie_header)
-
-            if COOKIE_NAME not in cookie:
+            if not is_authenticated(self):
                 self.send_response(303)
                 self.send_header("Location", "/login")
                 self.end_headers()
@@ -256,6 +258,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
             name = parsed.get("name", [""])[0]
             email = parsed.get("email", [""])[0]
+            password = parsed.get("password", [""])[0]
 
             if not is_email_valid(email):
                 self.send_response(400)
@@ -271,21 +274,24 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(b"Invalid Name")
                 return
 
-            # user_data = f"name:{name}|email:{email}\n"
+            if not is_password_valid(password):
+                self.send_response(400)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"Invalid Password")
+                return
 
             try:
-                # with open("userdata.txt", "a") as f:
-                #     f.write(user_data)
-
                 cursor.execute(
-                    "INSERT INTO users (name, email) VALUES (?, ?)", (name, email)
+                    "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+                    (name, email, password),
                 )
                 con.commit()
 
-                self.send_response(200)
-                # self.send_header("Content-Type", "text/html")
+                self.send_response(303)
+                self.send_header("Location", "/")
                 self.end_headers()
-                self.wfile.write(b"<h1>User Added</h1><a href='/'>Home</a>")
+                # self.wfile.write(b"<h1>User Added</h1><a href='/'>Home</a>")
                 return
             except Exception:
                 self.send_response(500)
@@ -296,19 +302,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         # handle edit username
         if self.path == "/editUser":
             # check for cookie
-            cookie_header = self.headers.get("Cookie", "")
-            cookie = http.cookies.SimpleCookie()
-            cookie.load(cookie_header)
-
-            if COOKIE_NAME not in cookie:
+            if not is_authenticated(self):
                 self.send_response(303)
                 self.send_header("Location", "/login")
                 self.end_headers()
                 return
-
-            # get stored data
-            # with open("userdata.txt", "r") as f:
-            #     stored_user_data = f.read().strip().split("\n")
 
             # get edited data
             edited_content_length = int(self.headers.get("Content-Length", 0))
@@ -331,6 +329,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
             edited_item_name = parsed.get("name", [""])[0]
             edited_item_email = parsed.get("email", [""])[0]
+            edited_item_password = parsed.get("password", [""])[0]
 
             if not is_email_valid(edited_item_email):
                 self.send_response(400)
@@ -346,15 +345,24 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(b"Invalid Name")
                 return
 
+            if not is_password_valid(edited_item_password):
+                self.send_response(400)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"Invalid Password")
+                return
+
             try:
                 cursor.execute(
-                    "SELECT name, email FROM users WHERE id = ?", (edited_item_id,)
+                    "SELECT name, email, password FROM users WHERE id = ?",
+                    (edited_item_id,),
                 )
                 user_data_from_table = cursor.fetchone()
 
                 if user_data_from_table == (
                     edited_item_name,
                     edited_item_email,
+                    edited_item_password,
                 ):
                     self.send_response(200)
                     self.send_header("Content-Type", "text/html")
@@ -363,15 +371,20 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     return
 
                 cursor.execute(
-                    "UPDATE users SET name = ?, email = ? WHERE id = ?",
-                    (edited_item_name, edited_item_email, edited_item_id),
+                    "UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?",
+                    (
+                        edited_item_name,
+                        edited_item_email,
+                        edited_item_password,
+                        edited_item_id,
+                    ),
                 )
                 con.commit()
 
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html")
                 self.end_headers()
-                self.wfile.write(b"<p>Submitted</p> <a href='/'>Home</a>")
+                self.wfile.write(b"<p>Changes submitted</p> <a href='/'>Home</a>")
                 return
             except IndexError:
                 self.send_response(404)

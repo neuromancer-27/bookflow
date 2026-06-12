@@ -9,18 +9,21 @@ cursor.execute("""
     CREATE TABLE if not exists users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL
+        email TEXT UNIQUE NOT NULL,
+        password TEXT UNIQUE NOT NULL
     )
 """)
 
 # data = [
-#     ("Legolas Greenleaf", "legolas.greenleaf@mirkwood.net"),
-#     ("Katniss Everdeen", "katniss.everdeen@panemmail.com"),
-#     ("Bilbo Baggins", "bilbo.baggins@shiremail.com"),
-#     ("Jay Gatsby", "jay.gatsby@westegg.com"),
+#     ("Legolas Greenleaf", "legolas.greenleaf@mirkwood.net", "Lg7@Mirkwood"),
+#     ("Tyrion Lannister", "tyrion.lannister@casterly.com", "L1on@Drinks4ever"),
+#     ("Frodo Baggins", "frodo.baggins@theshire.net", "R1ngB3ar3r@Shire"),
+#     ("Rand alThor", "rand.althor@tworivers.net", "Dr4g0nR3b0rn@Light"),
 # ]
 
-# cursor.executemany("INSERT OR IGNORE INTO users (name, email) VALUES (?, ?)", data)
+# cursor.executemany(
+#     "INSERT OR IGNORE INTO users (name, email, password) VALUES (?, ?, ?)", data
+# )
 # con.commit()
 
 result = cursor.execute("SELECT * FROM users")

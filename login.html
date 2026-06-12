@@ -16,9 +16,20 @@
             <div>
                 <lable for="password">Password</lable>
                 <input type="password" id="password" name="password" required />
+
+                <label><input type="checkbox" id="showPassword" />Show</label>
             </div>
 
             <button type="submit">Login</button>
+
+            <script>
+                const password = document.querySelector("#password");
+                const showPassword = document.querySelector("#showPassword");
+
+                showPassword.addEventListener("change", () => {
+                    password.type = showPassword.checked ? "text" : "password";
+                });
+            </script>
         </form>
     </body>
 </html>

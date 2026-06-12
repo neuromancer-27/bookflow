@@ -15,10 +15,25 @@
             <label for="email">Email:</label>
             <input type="text" name="email" value="{email}" required />
 
+            <lable for="password">Password:</lable>
+            <input type="password" name="password" id="password" value="{password}" required>
+
+            <label><input type="checkbox" id="showPassword">Show</label>
+
             <input type="submit" id="btnSubmit" value="submit" />
         </form>
 
         <p>ID: {idnum}</p>
+
+        <script>
+            const password = document.querySelector("#password");
+            const showPassword = document.querySelector("#showPassword");
+
+            showPassword.addEventListener("change", () => {
+              password.type = showPassword.checked ? "text" : "password";
+            });
+        </script>
+
         <a href="/about">About</a>
         <a href="/contact">Contact</a>
     </body>

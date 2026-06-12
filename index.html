@@ -14,6 +14,11 @@
             <label for="email">Email:</label>
             <input name="email" type="email" id="emailid" required />
 
+            <lable for="password">Password:</lable>
+            <input type="password" name="password" id="password" required />
+
+            <label><input type="checkbox" id="showPassword" />Show</label>
+
             <input type="submit" id="btnSubmit" value="submit" />
         </form>
 
@@ -29,8 +34,14 @@
         <script>
             const modal = document.querySelector(".modal");
             const closeModal = document.querySelector(".closeModal");
+            const password = document.querySelector("#password");
+            const showPassword = document.querySelector("#showPassword");
 
             let selectedDeleteRoute = null;
+
+            showPassword.addEventListener("change", () => {
+                password.type = showPassword.checked ? "text" : "password";
+            });
 
             document.addEventListener("click", (e) => {
                 if (e.target.matches(".showModal")) {
