@@ -22,6 +22,36 @@ def is_authenticated(self):
     return COOKIE_NAME in cookie and cookie[COOKIE_NAME].value == COOKIE_VALUE
 
 
+# get current user id
+def get_current_user_id(self):
+    cookie_headers = self.headers.get("Cookie", "")
+    cookie = http.cookies.SimpleCookie()
+    cookie.load(cookie_headers)
+
+    current_user_id = cookie["user_id"].value
+    return int(current_user_id)
+
+
+# get current user from DB
+def get_current_user(self):
+    user_id = get_current_user_id(self)
+
+    # get user from DB
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    user_row = cursor.fetchone()
+
+    return user_row
+
+
+# check if user is admin
+def is_admin(self):
+    current_user = get_current_user(self)
+
+    role = current_user[4]
+
+    return role == "admin"
+
+
 class MyHandler(http.server.BaseHTTPRequestHandler):
     # handle all GET requests
     def do_GET(self):
@@ -49,10 +79,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.end_headers()
                 return
 
-            item_id = int(path.split("/")[2])
+            if not is_admin(self):
+                self.send_response(303)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+
+            requested_user_id = int(path.split("/")[2])
 
             cursor.execute(
-                "SELECT name, email, password FROM users WHERE id = ?", (item_id,)
+                "SELECT name, email, password FROM users WHERE id = ?",
+                (requested_user_id,),
             )
             req_user_to_delete = cursor.fetchone()
 
@@ -63,7 +100,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(b"Index not valid OR Item already deleted")
                 return
 
-            cursor.execute("DELETE FROM users WHERE id = ?", (item_id,))
+            cursor.execute("DELETE FROM users WHERE id = ?", (requested_user_id,))
             con.commit()
 
             self.send_response(303)
@@ -89,11 +126,22 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 edit_page_data = f.read()
 
             # extract the id form the incoming route
-            item_id = int(path.split("/")[2])
+            requested_user_id = int(path.split("/")[2])
+
+            # check if users is not admin and the users id does not match with the cookie user-id
+            # redirect to index page
+            if (
+                not is_admin(self)
+                and not get_current_user_id(self) == requested_user_id
+            ):
+                self.send_response(303)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
 
             try:
                 # fetch all the data from the table
-                cursor.execute("SELECT * FROM users WHERE id = ?", (item_id,))
+                cursor.execute("SELECT * FROM users WHERE id = ?", (requested_user_id,))
 
                 requested_user = cursor.fetchone()
                 if requested_user is None:
@@ -108,8 +156,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
                 edit_page = (
                     edit_page_data.decode("utf-8")
-                    .replace("{idnum}", f"Edit item with id: {item_id}")
-                    .replace("{id}", str(item_id))
+                    .replace("{idnum}", f"Edit item with id: {requested_user_id}")
+                    .replace("{id}", str(requested_user_id))
                     .replace("{name}", f"{req_user_name}")
                     .replace("{email}", f"{req_user_email}")
                     .replace("{password}", f"{req_user_password}")
@@ -156,15 +204,18 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                             self.wfile.write(b"Not Found")
                             return
 
-                        # with open("userdata.txt", "r") as f:
-                        #     users_info = f.read()
-
                         cursor.execute("SELECT * FROM users")
                         users_info = cursor.fetchall()
+                        users_html = build_user_html(
+                            users_info, is_admin(self), get_current_user_id(self)
+                        )
 
-                        users_html = build_user_html(users_info)
-                        final_page = data.decode("utf-8").replace(
-                            "{content}", users_html
+                        role = "admin" if is_admin(self) else "user"
+
+                        final_page = (
+                            data.decode("utf-8")
+                            .replace("{role}", role)
+                            .replace("{content}", users_html)
                         )
                         self.send_response(200)
                         self.send_header("Content-Type", "text/html")
@@ -176,7 +227,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(data)
                     return
-            except Exception:
+            except Exception as e:
+                print(e)
                 self.send_response(500)
                 self.end_headers()
                 self.wfile.write(b"Server ErrorDB")
@@ -190,9 +242,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
 
         if self.path == "/authenticate":
-            username_admin = "admin"
-            password_admin = "gandalf"
-
+            # get data from incoming request
             content_length = int(self.headers.get("Content-Length", 0))
             raw_body = self.rfile.read(content_length).decode("utf-8")
 
@@ -203,22 +253,26 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             username = parsed.get("username", [""])[0]
             password = parsed.get("password", [""])[0]
 
+            # get data from the DB
             cursor.execute("SELECT * FROM users")
             stored_users = cursor.fetchall()
 
+            loggedin_users_id = None
             in_stored_users = False
             for user in stored_users:
                 if username == user[1] and password == user[3]:
                     in_stored_users = True
+                    loggedin_users_id = user[0]
                     break
 
-            if in_stored_users or (
-                username == username_admin and password == password_admin
-            ):
+            if in_stored_users:
                 self.send_response(303)
                 self.send_header("Location", "/")
                 self.send_header(
-                    "Set-Cookie", f"{COOKIE_NAME}={COOKIE_VALUE}; Path=/; HttpOnly"
+                    "Set-Cookie", f"{COOKIE_NAME}={COOKIE_VALUE};Path=/; HttpOnly"
+                )
+                self.send_header(
+                    "Set-Cookie", f"user_id={loggedin_users_id};Path=/; HttpOnly"
                 )
                 self.end_headers()
                 return
@@ -230,7 +284,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 "{message}", "Username or Password Incorrect"
             )
 
-            self.send_response(200)
+            self.send_response(400)
             self.send_header("Content-Type", "text/html")
             self.end_headers()
             self.wfile.write(final_page.encode("utf-8"))
@@ -241,6 +295,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             if not is_authenticated(self):
                 self.send_response(303)
                 self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
+            if not is_admin(self):
+                self.send_response(303)
+                self.send_header("Location", "/")
                 self.end_headers()
                 return
 

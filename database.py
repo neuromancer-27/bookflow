@@ -10,9 +10,17 @@ cursor.execute("""
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        password TEXT UNIQUE NOT NULL
+        password TEXT UNIQUE NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user'
+            CHECK(role IN('user', 'admin'))
     )
 """)
+
+# cursor.execute("""
+#     INSERT INTO users (name, email, password, role)
+#     VALUES ('admin', 'example@gmail.com', 'secret@Pass', 'admin')
+# """)
+# con.commit()
 
 # data = [
 #     ("Legolas Greenleaf", "legolas.greenleaf@mirkwood.net", "Lg7@Mirkwood"),
@@ -28,10 +36,3 @@ cursor.execute("""
 
 result = cursor.execute("SELECT * FROM users")
 print(result.fetchall())
-# con.close()
-
-# new_con = sqlite3.connect("users.db")
-# new_cursor = new_con.cursor()
-# result = new_cursor.execute("SELECT * FROM users")
-# print(result.fetchall())
-# new_con.close()

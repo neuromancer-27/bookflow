@@ -1,4 +1,4 @@
-def build_user_html(userdata):
+def build_user_html(userdata, is_admin, current_user_id):
     html_parts = []
 
     for user in userdata:
@@ -9,11 +9,16 @@ def build_user_html(userdata):
         name = user[1]
         email = user[2]
 
-        edit_route = f"/edit/{id}"
-        edit_button = f"""<a href='{edit_route}'><button>edit</button></a>"""
+        edit_button = ""
+        delete_button = ""
 
-        delete_route = f"/delete/{id}"
-        delete_button = f"""<button class = 'showModal' data-delete-route = '{delete_route}'>delete</button>"""
+        if is_admin or id == current_user_id:
+            edit_route = f"/edit/{id}"
+            edit_button = f"<a href='{edit_route}'><button>edit</button></a>"
+
+        if is_admin:
+            delete_route = f"/delete/{id}"
+            delete_button = f"<button class='showModal' data-delete-route='{delete_route}'>delete</button>"
 
         html_parts.append(
             f"<p><strong>{name}</strong> - {email} {edit_button} {delete_button}</p>"
