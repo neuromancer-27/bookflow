@@ -6,6 +6,7 @@ import re
 from build_user_html import build_user_html
 from credentials_validation import is_email_valid, is_name_valid, is_password_valid
 from database import con, cursor
+from sessionsDB import conn_session, cursor_session
 
 # from read_user_data import read_user_data
 
@@ -27,14 +28,26 @@ def get_current_user_id(self):
     cookie_headers = self.headers.get("Cookie", "")
     cookie = http.cookies.SimpleCookie()
     cookie.load(cookie_headers)
+    current_session_id = cookie["session_id"].value
 
-    current_user_id = cookie["user_id"].value
-    return int(current_user_id)
+    cursor_session.execute("SELECT * FROM session")
+    all_session_data = cursor_session.fetchall()
+
+    for data in all_session_data:
+        if current_session_id == data[1]:
+            current_user_id = data[2]
+
+            return int(current_user_id)
+
+    return None
 
 
 # get current user from DB
 def get_current_user(self):
     user_id = get_current_user_id(self)
+
+    if user_id is None:
+        return None
 
     # get user from DB
     cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
@@ -46,6 +59,12 @@ def get_current_user(self):
 # check if user is admin
 def is_admin(self):
     current_user = get_current_user(self)
+
+    if current_user is None:
+        self.send_respons(302)
+        self.send_header("Location", "/login")
+        self.end_headers()
+        return
 
     role = current_user[4]
 
@@ -266,13 +285,32 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     break
 
             if in_stored_users:
+                import secrets
+
+                # create a cryptographic safe token
+                token = secrets.token_urlsafe(32)
+
+                # store the sessionID and userID in the sessionsDB
+                cursor_session.execute(
+                    "INSERT INTO sessions(sessionID, user_ID) VALUES(?, ?)",
+                    (token, loggedin_users_id),
+                )
+                conn_session.commit()
+
+                # get the sessionsID from the sessionsDB
+                cursor_session.execute(
+                    "SELECT sessionID FROM sessions WHERE user_ID = ?",
+                    (loggedin_users_id,),
+                )
+                session_id = cursor_session.fetchone()
+
                 self.send_response(303)
                 self.send_header("Location", "/")
                 self.send_header(
                     "Set-Cookie", f"{COOKIE_NAME}={COOKIE_VALUE};Path=/; HttpOnly"
                 )
                 self.send_header(
-                    "Set-Cookie", f"user_id={loggedin_users_id};Path=/; HttpOnly"
+                    "Set-Cookie", f"session_id={session_id};Path=/; HttpOnly"
                 )
                 self.end_headers()
                 return
@@ -385,6 +423,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_response(404)
                 self.end_headers()
                 self.wfile.write(f"Invalid id: {parsed}".encode("utf-8"))
+                return
+
+            if not is_admin(self) and not get_current_user_id(self) == edited_item_id:
+                self.send_response(303)
+                self.send_header("Location", f"/edit/{get_current_user_id(self)}")
+                self.end_headers()
                 return
 
             edited_item_name = parsed.get("name", [""])[0]

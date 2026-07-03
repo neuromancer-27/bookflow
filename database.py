@@ -1,6 +1,6 @@
 import sqlite3
 
-# create a connection to sqlite db from the disk, creates it if now already present
+# create a connection to sqlite db from the disk, creates it if not already present
 con = sqlite3.connect("users.db")
 # con.row_factory = sqlite3.Row
 cursor = con.cursor()
