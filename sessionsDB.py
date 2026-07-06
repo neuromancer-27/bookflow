@@ -1,6 +1,6 @@
 import sqlite3
 
-conn_session = sqlite3.connect("session.db")
+conn_session = sqlite3.connect("sessions.db")
 cursor_session = conn_session.cursor()
 
 cursor_session.execute("""

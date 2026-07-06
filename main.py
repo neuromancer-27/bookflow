@@ -15,7 +15,7 @@ COOKIE_VALUE = "youshallpass"
 
 
 # cookie check helper
-def is_authenticated(self):
+def is_authenticated(self) -> bool:
     cookie_headers = self.headers.get("Cookie", "")
     cookie = http.cookies.SimpleCookie()
     cookie.load(cookie_headers)
@@ -24,13 +24,17 @@ def is_authenticated(self):
 
 
 # get current user id
-def get_current_user_id(self):
+def get_current_user_id(self) -> int | None:
     cookie_headers = self.headers.get("Cookie", "")
     cookie = http.cookies.SimpleCookie()
     cookie.load(cookie_headers)
+
+    if "session_id" not in cookie:
+        return None
+
     current_session_id = cookie["session_id"].value
 
-    cursor_session.execute("SELECT * FROM session")
+    cursor_session.execute("SELECT * FROM sessions")
     all_session_data = cursor_session.fetchall()
 
     for data in all_session_data:
@@ -43,7 +47,7 @@ def get_current_user_id(self):
 
 
 # get current user from DB
-def get_current_user(self):
+def get_current_user(self) -> tuple[int, str, str, str, str] | None:
     user_id = get_current_user_id(self)
 
     if user_id is None:
@@ -57,14 +61,11 @@ def get_current_user(self):
 
 
 # check if user is admin
-def is_admin(self):
+def is_admin(self) -> bool:
     current_user = get_current_user(self)
 
     if current_user is None:
-        self.send_respons(302)
-        self.send_header("Location", "/login")
-        self.end_headers()
-        return
+        return False
 
     role = current_user[4]
 
@@ -260,6 +261,29 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
 
+        if self.path == "/logout":
+            cookie_headers = self.headers.get("Cookie", "")
+            cookie = http.cookies.SimpleCookie()
+            cookie.load(cookie_headers)
+
+            # if sessionid exists delete it form the DB
+            if "session_id" in cookie:
+                current_session_id = cookie["session_id"].value
+
+                cursor_session.execute(
+                    "DELETE FROM sessions WHERE sessionID = ?",
+                    (current_session_id,),
+                )
+                conn_session.commit()
+
+            # clear the cookies from the browser and redirect to login
+            self.send_response(303)
+            self.send_header("Location", "/login")
+            self.send_header("Set-Cookie", "message=; Path=/; HttpOnly; Max-Age=0")
+            self.send_header("Set-Cookie", "session_id=; Path=/; HttpOnly; Max-Age=0")
+            self.end_headers()
+            return
+
         if self.path == "/authenticate":
             # get data from incoming request
             content_length = int(self.headers.get("Content-Length", 0))
@@ -302,7 +326,9 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     "SELECT sessionID FROM sessions WHERE user_ID = ?",
                     (loggedin_users_id,),
                 )
-                session_id = cursor_session.fetchone()
+                session_row = cursor_session.fetchone()
+
+                session_id = session_row[0]
 
                 self.send_response(303)
                 self.send_header("Location", "/")

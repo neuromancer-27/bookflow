@@ -1,4 +1,8 @@
-def build_user_html(userdata, is_admin, current_user_id):
+def build_user_html(
+    userdata: list[tuple[int, str, str, str, str]],
+    is_admin: bool,
+    current_user_id: int | None,
+) -> str:
     html_parts = []
 
     for user in userdata:
