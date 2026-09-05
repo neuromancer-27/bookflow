@@ -1,5 +1,7 @@
 import sqlite3
 
+from salt_hashing import hash_password
+
 # create a connection to sqlite db from the disk, creates it if not already present
 con = sqlite3.connect("users.db")
 # con.row_factory = sqlite3.Row
@@ -16,17 +18,22 @@ cursor.execute("""
     )
 """)
 
+salt, passwordhash = hash_password("Admin@Pass1")
+stored_password = f"{salt.hex()}:{passwordhash.hex()}"
+
 # cursor.execute("""
-#     INSERT INTO users (name, email, password, role)
-#     VALUES ('admin', 'example@gmail.com', 'secret@Pass', 'admin')
-# """)
+#     INSERT OR IGNORE INTO users (name, email, password, role)
+#     VALUES (?, ?, ?, ?)
+# """,
+# ('admin', 'admin@example.com', stored_password, 'admin'),
+# )
 # con.commit()
 
 # data = [
 #     ("Legolas Greenleaf", "legolas.greenleaf@mirkwood.net", "Lg7@Mirkwood"),
 #     ("Tyrion Lannister", "tyrion.lannister@casterly.com", "L1on@Drinks4ever"),
 #     ("Frodo Baggins", "frodo.baggins@theshire.net", "R1ngB3ar3r@Shire"),
-#     ("Rand alThor", "rand.althor@tworivers.net", "Dr4g0nR3b0rn@Light"),
+#     ("Rand alThor", "rand.althor@tworivers.net", "DragonR3born@Light"),
 # ]
 
 # cursor.executemany(

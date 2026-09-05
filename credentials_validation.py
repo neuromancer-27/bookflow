@@ -1,16 +1,16 @@
 import re
 
 
-def is_email_valid(email):
+def is_email_valid(email: str):
     regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return bool(re.fullmatch(regex, email))
 
 
-def is_name_valid(name):
+def is_name_valid(name: str):
     regex = r"^[a-zA-Z0-9 ]+$"
     return bool(re.fullmatch(regex, name))
 
 
-def is_password_valid(password):
+def is_password_valid(password: str):
     regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{5,}$"
     return bool(re.fullmatch(regex, password))

@@ -2,11 +2,13 @@ import http.cookies
 import http.server
 import os
 import re
+import hmac
 
 from build_user_html import build_user_html
 from credentials_validation import is_email_valid, is_name_valid, is_password_valid
 from database import con, cursor
 from sessionsDB import conn_session, cursor_session
+from salt_hashing import hash_password
 
 # from read_user_data import read_user_data
 
@@ -152,7 +154,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             # redirect to index page
             if (
                 not is_admin(self)
-                and not get_current_user_id(self) == requested_user_id
+                and get_current_user_id(self) != requested_user_id
             ):
                 self.send_response(303)
                 self.send_header("Location", "/")
@@ -279,8 +281,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             # clear the cookies from the browser and redirect to login
             self.send_response(303)
             self.send_header("Location", "/login")
-            self.send_header("Set-Cookie", "message=; Path=/; HttpOnly; Max-Age=0")
-            self.send_header("Set-Cookie", "session_id=; Path=/; HttpOnly; Max-Age=0")
+            self.send_header("Set-Cookie", "message=; Path=/; HttpOnly; Secure; Max-Age=0")
+            self.send_header("Set-Cookie", "session_id=; Path=/; HttpOnly; Secure; Max-Age=0")
             self.end_headers()
             return
 
@@ -303,10 +305,29 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             loggedin_users_id = None
             in_stored_users = False
             for user in stored_users:
-                if username == user[1] and password == user[3]:
-                    in_stored_users = True
-                    loggedin_users_id = user[0]
-                    break
+
+                if username == user[1]:
+                    stored_passwordhash = user[3]
+
+                    stored_salt_hex, stored_password_hex = stored_passwordhash.split(":")
+
+                    stored_salt_bytes = bytes.fromhex(stored_salt_hex)
+                    stored_password_bytes = bytes.fromhex(stored_password_hex)
+
+                    _, incoming_password_bytes = hash_password(password, salt=stored_salt_bytes)
+
+                    compare = hmac.compare_digest(incoming_password_bytes, stored_password_bytes)
+
+                    if compare:
+                        in_stored_users = True
+                        loggedin_users_id = user[0]
+                        break
+
+
+                # if username == user[1] and password == user[3]:
+                #     in_stored_users = True
+                #     loggedin_users_id = user[0]
+                #     break
 
             if in_stored_users:
                 import secrets
@@ -333,10 +354,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_response(303)
                 self.send_header("Location", "/")
                 self.send_header(
-                    "Set-Cookie", f"{COOKIE_NAME}={COOKIE_VALUE};Path=/; HttpOnly"
+                    "Set-Cookie", f"{COOKIE_NAME}={COOKIE_VALUE};Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=1800"
                 )
                 self.send_header(
-                    "Set-Cookie", f"session_id={session_id};Path=/; HttpOnly"
+                    "Set-Cookie", f"session_id={session_id};Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=1800"
                 )
                 self.end_headers()
                 return
@@ -405,19 +426,24 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(b"Invalid Password")
                 return
 
+            # salt and hash the incoming password before storage
+            salt,hash = hash_password(password)
+
+            salt_passwordhash = f"{salt.hex()}:{hash.hex()}"
+
             try:
                 cursor.execute(
                     "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-                    (name, email, password),
+                    (name, email, salt_passwordhash),
                 )
                 con.commit()
 
                 self.send_response(303)
                 self.send_header("Location", "/")
                 self.end_headers()
-                # self.wfile.write(b"<h1>User Added</h1><a href='/'>Home</a>")
                 return
-            except Exception:
+            except Exception as e:
+                print(f"Unexpected server error: {e}")
                 self.send_response(500)
                 self.end_headers()
                 self.wfile.write(b"Server Error")
@@ -451,7 +477,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(f"Invalid id: {parsed}".encode("utf-8"))
                 return
 
-            if not is_admin(self) and not get_current_user_id(self) == edited_item_id:
+            if not is_admin(self) and get_current_user_id(self) != edited_item_id:
                 self.send_response(303)
                 self.send_header("Location", f"/edit/{get_current_user_id(self)}")
                 self.end_headers()
@@ -489,23 +515,38 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 )
                 user_data_from_table = cursor.fetchone()
 
+                stored_passwordhash = user_data_from_table[2]
+
+                stored_salt_hex, stored_password_hex = stored_passwordhash.split(":")
+
+                stored_salt_bytes = bytes.fromhex(stored_salt_hex)
+                stored_password_bytes = bytes.fromhex(stored_password_hex)
+
+                #hash incoming password
+                salt, incoming_edited_password_bytes = hash_password(edited_item_password, salt=stored_salt_bytes)
+
+                compare = hmac.compare_digest(incoming_edited_password_bytes, stored_password_bytes)
+
                 if user_data_from_table == (
                     edited_item_name,
                     edited_item_email,
-                    edited_item_password,
-                ):
+                ) and compare:
+
                     self.send_response(200)
                     self.send_header("Content-Type", "text/html")
                     self.end_headers()
                     self.wfile.write(b"<p>No changes made</p> <a href='/'>Home</a>")
                     return
 
+                #else
+
+                edited_salt_passwordhash = f"{salt.hex()}:{incoming_edited_password_bytes.hex()}"
                 cursor.execute(
                     "UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?",
                     (
                         edited_item_name,
                         edited_item_email,
-                        edited_item_password,
+                        edited_salt_passwordhash,
                         edited_item_id,
                     ),
                 )
