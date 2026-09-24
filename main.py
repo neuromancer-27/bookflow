@@ -586,8 +586,8 @@ context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 context.load_cert_chain(certfile='certs/bookflow.crt', keyfile='certs/bookflow.key',)
 
 # start a plain HTTP server bound to localhost at port 4443, getting input from MyHandler
-with http.server.HTTPServer(("localhost", 4443), MyHandler) as server:
+with http.server.HTTPServer(("127.0.0.1", 4443), MyHandler) as server:
     #takes the raw TCP socket and wraps it in TLS context, server_side=True tells it to do the server side handshake
    server.socket = context.wrap_socket(server.socket, server_side=True)
-   print("HTTPS server running at https://localhost:4443")
+   print("HTTPS server running at https://neuromancer.dev:4443")
    server.serve_forever()
