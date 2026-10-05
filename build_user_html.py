@@ -1,3 +1,6 @@
+from logging import info
+
+
 def build_user_html(
     userdata: list[tuple[int, str, str, str, str]],
     is_admin: bool,
@@ -25,7 +28,7 @@ def build_user_html(
             delete_button = f"<button class='showModal' data-delete-route='{delete_route}'>delete</button>"
 
         html_parts.append(
-            f"<p><strong>{name}</strong> - {email} {edit_button} {delete_button}</p>"
+            f'<p><a href="/Userinfo/{id}"><strong>{name}</strong></a> - {email} {edit_button} {delete_button}</p>'
         )
 
     return "".join(html_parts) or "<p>No users found</p>"

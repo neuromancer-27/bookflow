@@ -17,4 +17,4 @@ cursor_session.execute("""
 
 cursor_session.execute("SELECT * FROM sessions")
 result = cursor_session.fetchall()
-print(result)
+# print(result)

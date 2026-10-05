@@ -131,7 +131,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        # handle dynamic route
+        # handle edit page
         path = self.path
         regex = r"^/edit/[1-9]+$"
 
@@ -151,7 +151,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             # extract the id form the incoming route
             requested_user_id = int(path.split("/")[2])
 
-            # check if users is not admin and the users id does not match with the cookie user-id
+            # check if user is not admin and the users id does not match with the cookie user-id
             # redirect to index page
             if (
                 not is_admin(self)
@@ -172,6 +172,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     self.send_header("Content/Type", "text/html")
                     self.end_headers()
                     self.wfile.write(b"ID not valid")
+                    return
 
                 req_user_name = requested_user[1]
                 req_user_email = requested_user[2]
@@ -197,6 +198,59 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b"The entered Index is not valid")
                 return
+
+
+        #handel info page
+        path = self.path
+        regex = r'^/Userinfo/[1-9]+$'
+
+        if re.fullmatch(regex, path):
+
+            if not is_authenticated(self):
+                self.send_response(303)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
+            with open("info.html", "rb") as f:
+                info_page_data = f.read()
+
+            requested_user_id = int(path.split("/")[2])
+
+            try:
+                cursor.execute("SELECT * FROM users WHERE id=?", (requested_user_id,))
+                requested_user = cursor.fetchone()
+
+                if requested_user is None:
+                    self.send_response(400)
+                    self.send_header("Content-Type", "text/html")
+                    self.end_headers()
+                    self.wfile.write(b"ID not valid")
+                    return
+
+                req_user_name = requested_user[1]
+                req_user_email = requested_user[2]
+
+                info_page = (
+                    info_page_data.decode('utf-8')
+                    .replace("{username}", f"{req_user_name}")
+                    .replace("{useremail}", f"{req_user_email}")
+                    .replace("{comment_heading}", f"What other users think about {req_user_name}:")
+                )
+
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(info_page.encode("utf-8"))
+                return
+            except IndexError:
+                self.send_response(404)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"The entered Index is not valid")
+                return
+
+
 
         # dict to handle all the different strict url routes
         routes = {
@@ -344,13 +398,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 conn_session.commit()
 
                 # get the sessionsID from the sessionsDB
-                cursor_session.execute(
-                    "SELECT sessionID FROM sessions WHERE user_ID = ?",
-                    (loggedin_users_id,),
-                )
-                session_row = cursor_session.fetchone()
+                # cursor_session.execute(
+                #     "SELECT sessionID FROM sessions WHERE user_ID = ?",
+                #     (loggedin_users_id,),
+                # )
+                # session_row = cursor_session.fetchone()
 
-                session_id = session_row[0]
+                session_id = token
 
                 self.send_response(303)
                 self.send_header("Location", "/")
