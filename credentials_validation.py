@@ -14,3 +14,7 @@ def is_name_valid(name: str):
 def is_password_valid(password: str):
     regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{5,}$"
     return bool(re.fullmatch(regex, password))
+
+def is_comment_valid(comment: str) -> bool:
+    regex = r"""^[a-zA-Z0-9 .,!?'"'"'()\-:;]+$"""
+    return bool(re.fullmatch(regex, comment))

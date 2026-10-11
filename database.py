@@ -18,8 +18,8 @@ cursor.execute("""
     )
 """)
 
-salt, passwordhash = hash_password("Admin@Pass1")
-stored_password = f"{salt.hex()}:{passwordhash.hex()}"
+# salt, passwordhash = hash_password("Admin@Pass1")
+# stored_password = f"{salt.hex()}:{passwordhash.hex()}"
 
 # cursor.execute("""
 #     INSERT OR IGNORE INTO users (name, email, password, role)

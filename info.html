@@ -14,8 +14,20 @@
 
     <label for="comment">{comment_heading}</label>
     <div class="comment section">
-        <textarea id="comment" name="comment" rows="5" cols="40" placeholder="Write your thoughts..."></textarea>
+        <form action="/comments" method="POST">
+            <input type="hidden" name="id" value="{id}"></input>
+            <textarea
+                id="comment"
+                name="comment"
+                rows="5"
+                cols="40"
+                maxlength="101"
+                placeholder="Write your thoughts..."></textarea>
+
+            <button type="submit">Post comment</button>
+        </form>
+
+        <div>{comments}</div>
     </div>
-    <button type="button">Submit</button>
 </body>
 </html>

@@ -4,11 +4,14 @@ import ssl
 import os
 import re
 import hmac
+import sqlite3
+import html
 
 from build_user_html import build_user_html
-from credentials_validation import is_email_valid, is_name_valid, is_password_valid
+from credentials_validation import is_email_valid, is_name_valid, is_password_valid, is_comment_valid
 from database import con, cursor
 from sessionsDB import conn_session, cursor_session
+from comments import con_comments, cursor_comments
 from salt_hashing import hash_password
 
 # from read_user_data import read_user_data
@@ -217,40 +220,78 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
             requested_user_id = int(path.split("/")[2])
 
-            try:
-                cursor.execute("SELECT * FROM users WHERE id=?", (requested_user_id,))
-                requested_user = cursor.fetchone()
 
-                if requested_user is None:
-                    self.send_response(400)
-                    self.send_header("Content-Type", "text/html")
-                    self.end_headers()
-                    self.wfile.write(b"ID not valid")
-                    return
+            #fetch which user is selected
+            cursor.execute("SELECT * FROM users WHERE id=?", (requested_user_id,))
+            requested_user = cursor.fetchone()
 
-                req_user_name = requested_user[1]
-                req_user_email = requested_user[2]
-
-                info_page = (
-                    info_page_data.decode('utf-8')
-                    .replace("{username}", f"{req_user_name}")
-                    .replace("{useremail}", f"{req_user_email}")
-                    .replace("{comment_heading}", f"What other users think about {req_user_name}:")
-                )
-
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html")
-                self.end_headers()
-                self.wfile.write(info_page.encode("utf-8"))
-                return
-            except IndexError:
+            if requested_user is None:
                 self.send_response(404)
                 self.send_header("Content-Type", "text/html")
                 self.end_headers()
-                self.wfile.write(b"The entered Index is not valid")
+                self.wfile.write(b"User not found")
                 return
 
+            req_user_name = requested_user[1]
+            req_user_email = requested_user[2]
 
+
+            #handle displaying comments
+            try:
+                # cursor_comments.execute("""
+                #     SELECT content, sender_id
+                #     FROM comments_table
+                #     WHERE receiver_id = ?
+                #     ORDER BY created_at DESC
+                #     """,
+                #     (requested_user_id,),
+                # )
+
+                cursor_comments.execute("""
+                    SELECT users.name, comments_table.content
+                    FROM users
+                    INNER JOIN comments_table ON users.id = comments_table.sender_id
+                    WHERE comments_table.receiver_id = ?
+                    ORDER BY comments_table.created_at DESC
+                    """,
+                    (requested_user_id,),
+                )
+
+                all_comments = cursor_comments.fetchall()
+            except sqlite3.Error as e:
+                print(e)
+                self.send_response(500)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<p>Cannot load comments, please try again later")
+                return
+
+            comments_html = ""
+
+            for name, content in all_comments:
+                safe_comment = html.escape(content)
+
+                comments_html += f"""
+                    <div class='comment'>
+                        <small>Posted by {name}</small>
+                        <p>{safe_comment}</p>
+                    </div>
+                """
+
+            info_page = (
+                info_page_data.decode('utf-8')
+                .replace("{id}", str(requested_user_id))
+                .replace("{username}", f"{req_user_name}")
+                .replace("{useremail}", f"{req_user_email}")
+                .replace("{comment_heading}", f"What other users think about {req_user_name}:")
+                .replace("{comments}", comments_html)
+                )
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write(info_page.encode("utf-8"))
+            return
 
         # dict to handle all the different strict url routes
         routes = {
@@ -378,11 +419,6 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                         loggedin_users_id = user[0]
                         break
 
-
-                # if username == user[1] and password == user[3]:
-                #     in_stored_users = True
-                #     loggedin_users_id = user[0]
-                #     break
 
             if in_stored_users:
                 import secrets
@@ -529,7 +565,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             except ValueError:
                 self.send_response(404)
                 self.end_headers()
-                self.wfile.write(f"Invalid id: {parsed}".encode("utf-8"))
+                self.wfile.write(b"Invalid user ID")
                 return
 
             if not is_admin(self) and get_current_user_id(self) != edited_item_id:
@@ -618,6 +654,73 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b"<p>User not found</p> <a href ='/'>Home</a>")
                 return
+
+        #handle comments section
+        if self.path == "/comments":
+            if not is_authenticated(self):
+                self.send_response(303)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_data_body = self.rfile.read(content_length).decode('utf-8')
+
+            from urllib.parse import parse_qs
+
+            parsed = parse_qs(raw_data_body)
+
+            receiver_id = int(parsed.get("id", [""]) [0])
+            comment_content = parsed.get("comment", [""]) [0].strip()
+            sender_id = get_current_user_id(self)
+
+            #handle empty spaces in comments
+            if not comment_content.strip():
+                self.send_response(400)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<p>Comment must not be empty</p>")
+                return
+
+            #validate comment with regex
+            if not is_comment_valid(comment_content):
+                self.send_response(400)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<p>Comments must be 1-100 valid characters</p>")
+                return
+
+            try:
+                cursor_comments.execute("""
+                    INSERT INTO comments_table (receiver_id, sender_id, content)
+                    VALUES (?, ?, ?)
+                    """,
+                    (receiver_id, sender_id, comment_content),
+                )
+                con_comments.commit()
+
+            except sqlite3.IntegrityError:
+                self.send_response(400)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<p>Invalid comment data</p>")
+                return
+
+            # #display comment on browser
+            # safe_comment_content = html.escape(comment_content)
+
+            # with open("info.html", "rb") as f:
+            #     info_page_data = f.read()
+
+            # info_page =(
+            #     info_page_data.decode('utf-8')
+            #     .replace("{comments}", f"{safe_comment_content}")
+            # )
+
+            self.send_response(303)
+            self.send_header("Location", f"/Userinfo/{receiver_id}")
+            self.end_headers()
+            return
 
         else:
             self.send_response(404)
