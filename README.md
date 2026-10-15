@@ -11,8 +11,8 @@ The long-term goal of the project is to create a full end-to-end book tracking w
 The project is currently being built incrementally while learning backend concepts step by step.
 
 Future plans include:
-- SQL database integration
-- authentication
+- ~~SQL database integration~~
+- ~~authentication~~
 - improved UI/UX
 - deployment
 - feedback
