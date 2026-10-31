@@ -4,33 +4,106 @@
         <meta charset="UTF-8" >
         <meta name="viewport" content="width=device-width, initial-scale=1.0" >
         <title>Home</title>
+        <script src="https://kit.fontawesome.com/8f36c6e737.js" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://use.hugeicons.com/font/icons.css" />
+        <link href="/home/neuromancer/workspace/neuromancer/bookflow/frontend/css/style.css" rel="stylesheet">
     </head>
     <body>
-        <h3>Home Page</h3>
-        <p>{role}</p>
-        <form action="/addUser" method="POST">
-            <label for="name">Name:</label>
-            <input name="name" type="text" id="name" required />
+        <!--<h3>Home Page</h3>-->
+        <!--<p>{role}</p>-->
+        <nav>
+            <h1 class="nav-heading">Bookflow</h1>
+            <ul class="nav-list">
+                <li>
+                    <a href="index.html" class="menu-items" aria-current="page">
+                        <i class="fa-regular fa-house fa-lg"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="about.html" class="menu-items">
+                        <i class="fa-solid fa-book-open fa-lg"></i>
+                        My Books
+                    </a>
+                </li>
+                <li>
+                    <a href="contact.html" class="menu-items">
+                        <i class="fa-regular fa-compass fa-lg"></i>
+                        Explore
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="menu-items">
+                        <i class="fa-solid fa-chart-pie fa-lg"></i>
+                        Stats
+                    </a>
+                </li>
+            </ul>
 
-            <label for="email">Email:</label>
-            <input name="email" type="email" id="emailid" required />
 
-            <lable for="password">Password:</lable>
-            <input type="password" name="password" id="password" required />
+            <a href="/info.html" class="profile-link">
+                <div class="profile">
+                    <img src="/home/neuromancer/workspace/neuromancer/bookflow/images/Rhuarc.jpg" alt="Profile picture">
+                    <div class="info">
+                        <p class="name">Rhuarc of the Taardad Aiel</p>
+                        <p class="email">rhuarc.clanchief@threefoldland</p>
+                    </div>
+                </div>
+            </a>
 
-            <label><input type="checkbox" id="showPassword" />Show</label>
+        </nav>
+        <main>
+            <form action="/addUser" method="POST">
+                <label for="name">Name:</label>
+                <input name="name" type="text" id="name" required />
 
-            <input type="submit" id="btnSubmit" value="submit" />
-        </form>
+                <label for="email">Email:</label>
+                <input name="email" type="email" id="emailid" required />
 
-        <dialog class="modal">
-            <p><strong>This will permanantly remove the user</strong></p>
-            <button class="deleteConfirm">Confirm</button>
-            <button class="closeModal">Close</button>
-        </dialog>
+                <lable for="password">Password:</lable>
+                <input type="password" name="password" id="password" required />
 
-        <h3>Users</h3>
-        {content}
+                <label><input type="checkbox" id="showPassword" />Show</label>
+
+                <input type="submit" id="btnSubmit" value="submit" />
+            </form>
+
+            <dialog class="modal">
+                <p><strong>This will permanantly remove the user</strong></p>
+                <button class="deleteConfirm">Confirm</button>
+                <button class="closeModal">Close</button>
+            </dialog>
+
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
+            <form action="/logout" method="POST">
+                <button type="submit">Logout</button>
+            </form>
+        </main>
+
+        <div class="my-activity">
+            <h3 class="activity-heading">MY ACTIVITY</h3>
+            <div class="progress-panel">
+                <p class="panel-label">Weekly Progress</p>
+                <p class="page-count"><span class="read">505</span>/1007 pages read</p>
+                <p class="date">started 2nd Nov 2025</p>
+            </div>
+            <div class="goal-btns">
+                <button class="primary">Set reading goal</button>
+                <button>Set pages goal</button>
+                <button>Set hours goal</button>
+            </div>
+            <div class="total-books">
+                <i class="hgi hgi-stroke hgi-rounded hgi-bookshelf-03 books"></i>
+                <div>
+                    <p class="number">41</p>
+                    <p>Total books Read</p>
+                </div>
+            </div>
+        </div>
+
+        <!--<h3>Users</h3>
+        {content}-->
 
         <script>
             const modal = document.querySelector(".modal");
@@ -63,10 +136,6 @@
             });
         </script>
 
-        <a href="/about">About</a>
-        <a href="/contact">Contact</a>
-        <form action="/logout" method="POST">
-            <button type="submit">Logout</button>
-        </form>
+
     </body>
 </html>

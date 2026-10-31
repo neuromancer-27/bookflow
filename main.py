@@ -238,14 +238,6 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
             #handle displaying comments
             try:
-                # cursor_comments.execute("""
-                #     SELECT content, sender_id
-                #     FROM comments_table
-                #     WHERE receiver_id = ?
-                #     ORDER BY created_at DESC
-                #     """,
-                #     (requested_user_id,),
-                # )
 
                 cursor_comments.execute("""
                     SELECT users.name, comments_table.content

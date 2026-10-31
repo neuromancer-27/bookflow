@@ -1,0 +1,197 @@
+@font-face{
+    font-family: "Literata";
+    src: url(/home/neuromancer/workspace/neuromancer/bookflow/frontend/fonts/Literata-VariableFont_opsz,wght.woff2) format("woff2");
+    font-weight: 200 900;
+    font-style: normal;
+}
+
+@font-face {
+	font-family: "Inter";
+	src: url(/home/neuromancer/workspace/neuromancer/bookflow/frontend/fonts/Inter-VariableFont_opsz,wght.woff2) format("woff2");
+	font-weight: 100 900;
+	font-style: normal;
+}
+
+:root{
+    --main-bg-light: #F5F0E4;
+    --sidebar: #F0E8D8;
+    --primary-text-color: #1D2A22;
+    --secondary-text-color: #756B5B;
+    --borders: #D9CBB0;
+    --strong-borders: #BFAE8D;
+    --primary-accent: #285943;
+}
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    min-height: 100vh;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size:1.25rem;
+    background: var(--main-bg-light);
+    display: grid;
+    grid-template-columns: 20rem 1fr 20rem;
+    gap: 4rem;
+}
+
+h1,h2,h3 {
+    font-family: "Literata", Georgia, serif;
+    font-weight: 400;
+}
+
+/*left panel*/
+nav{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--sidebar);
+    box-shadow: 2px 0px 10px var(--strong-borders);
+    padding-block: 2rem;
+    gap: 4rem;
+}
+
+.nav-heading {
+    padding-block: 1rem;
+    color: var(--primary-text-color);
+}
+
+.nav-list {
+    width: 100%;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-inline: 5.2rem;
+    gap: 4rem;
+}
+
+.nav-list a {
+    display: flex;
+    text-decoration: none;
+    color: var(--secondary-text-color);
+    gap: 1rem;
+}
+
+.profile-link{
+    margin-top: auto;
+    text-decoration: none;
+    color: var(--secondary-text-color);
+}
+
+.profile{
+    display: flex;
+    align-items: center;
+    padding-block: 1rem;
+    gap: 1rem;
+}
+
+.profile img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0px 0px 10px var(--card-borders);
+}
+
+.profile .info .name {
+    font-size: 1rem;
+}
+
+.profile .info .email {
+    font-size: 0.8rem;
+}
+
+/*right panel*/
+.my-activity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--sidebar);
+    box-shadow: -2px 0px 10px var(--strong-borders);
+    padding: 3rem 2rem 2rem 2rem;
+    gap: 2rem;
+}
+
+.activity-heading {
+    align-self: start;
+    color: var(--primary-text-color);
+    text-decoration: underline;
+    text-decoration-color: var(--strong-borders);
+    text-decoration-thickness: 2px;
+}
+
+.progress-panel {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 1rem 0.5rem 1rem;
+    color: var(--secondary-text-color);
+    background-color: #FFFFFF;
+    box-shadow: 0px 0px 10px var(--borders);
+    border: 1px solid var(--strong-borders);
+    border-radius: 12px;
+    gap: 1rem;
+}
+
+.progress-panel .panel-label, .date {
+    font-size: 0.7rem;
+}
+
+.progress-panel .panel-label, .read {
+    font-weight: 700;
+}
+
+.progress-panel .pages-count {
+    font-size: 1rem;
+}
+
+.goal-btns{
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.goal-btns button{
+    font-weight: 500;
+    color: var(--secondary-text-color);
+    background-color: #FFFFFF;
+    border: 1px solid var(--strong-borders);
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px var(--borders);
+    padding: 1.5vh;
+}
+
+.goal-btns .primary {
+    background-color: var(--primary-accent);
+    color: whitesmoke;
+}
+
+.total-books{
+    align-self: flex-start;
+    align-items: center;
+    display: flex;
+    padding: 1rem;
+    margin-top: auto;
+    gap: 1rem;
+}
+
+.total-books .books {
+    color: var(--secondary-text-color);
+    font-size: 50px;
+    font-weight: 200;
+}
+
+.total-books .number{
+    font-size: 1.5rem;
+    color: var(--primary-text-color);
+}
+
+.total-books p{
+    font-size: 1rem;
+    color: var(--secondary-text-color);
+}
