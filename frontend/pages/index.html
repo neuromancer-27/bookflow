@@ -15,7 +15,7 @@
             <h1 class="nav-heading">Bookflow</h1>
             <ul class="nav-list">
                 <li>
-                    <a href="index.html" class="menu-items" aria-current="page">
+                    <a href="index.html" class="menu-items active" aria-current="page">
                         <i class="fa-regular fa-house fa-lg"></i>
                         Dashboard
                     </a>
@@ -53,7 +53,7 @@
 
         </nav>
         <main>
-            <form action="/addUser" method="POST">
+            <!--<form action="/addUser" method="POST">
                 <label for="name">Name:</label>
                 <input name="name" type="text" id="name" required />
 
@@ -78,20 +78,103 @@
             <a href="/contact">Contact</a>
             <form action="/logout" method="POST">
                 <button type="submit">Logout</button>
-            </form>
+            </form>-->
+
+            <div class="search-bar">
+                <input type="text" placeholder="Search all books">
+            </div>
+
+            <div class="quote">
+                <p>Quote Today</p>
+                <p class="body">My love for books is all that saved me</p>
+                <p class="author">Robin Sharma</p>
+            </div>
+
+            <div class="current-read">
+                <h4>Current read</h4>
+                <div class="main-card">
+                    <div class="current-book-card">
+                        <img
+                            src="/home/neuromancer/workspace/neuromancer/bookflow/images/tFoH.jpg"
+                            alt="book Cover" width="100%"
+                        >
+                    </div>
+
+                    <div class="book-details">
+                        <p class="book-title">Wheel of time book 5: The Fires of Heaven</p>
+                        <p class="book-author">Robert Jordan</p>
+                    </div>
+
+                    <div class="description-progress">
+                        <p class="book-description">Prophesized to defeat the Dark One, Rand
+                            al'Thor, the Dragon Reborn, has upset the balance of power across
+                            the land. Shaido Aiel are on the march, ravaging everything in
+                            their path. The White Tower's Amyrlin has been deposed, turning
+                            the Aes Sedai against one another. The forbidden city of Rhuidean
+                            is overrun by Shadowspawn.
+                        </p>
+                        <progress class="progress-bar" value="10" max="100">10%</progress>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reading-list">
+                <div class="list-option-btn">
+                    <button name="up-next" type="button" class="list-btn">Up next</button>
+                    <button name="completed" type="button" class="list-btn">Completed</button>
+                </div>
+                <div class="book-cards">
+                    <button type="button" class="book-cover-card" aria-label="The Power and the Glory">
+                        <img class="book-cover-img"
+                            src="/home/neuromancer/workspace/neuromancer/bookflow/images/thepowerandtheglory.jpg"
+                            alt="The Power and the Glory" width="100%"
+                        >
+                    </button>
+                    <button type="button" class="book-cover-card" aria-label="Wheel of Time book 6">
+                        <img class="book-cover-img"
+                            src="/home/neuromancer/workspace/neuromancer/bookflow/images/LoC.jpg"
+                            alt="Wheel of Time book 6" width="100%"
+                        >
+                    </button>
+                    <button type="button" class="book-cover-card" aria-label="The consolation of Philosophy">
+                        <img class="book-cover-img"
+                            src="/home/neuromancer/workspace/neuromancer/bookflow/images/theconsolationofphilosophy.jpg"
+                            alt="The consolation of Philosophy" width="100%"
+                        >
+                    </button>
+                    <button type="button" class="book-cover-card" aria-label="Wheel of time book 7">
+                        <img class="book-cover-img"
+                            src="/home/neuromancer/workspace/neuromancer/bookflow/images/aCoS.jpg"
+                            alt="Wheel of time book 7" width="100%"
+                        >
+                    </button>
+                    <button type="button" class="book-cover-card" aria-label="The Screwtape letters">
+                        <img class="book-cover-img"
+                            src="/home/neuromancer/workspace/neuromancer/bookflow/images/thescrewtapeletters.jpg"
+                            alt="The Screwtape letters" width="100%"
+                        >
+                    </button>
+                    <button type="button" class="book-cover-card" aria-label="A Path of Daggers">
+                        <img class="book-cover-img"
+                            src="/home/neuromancer/workspace/neuromancer/bookflow/images/aPoD.jpg"
+                            alt="A Path of Daggers" width="100%"
+                        >
+                    </button>
+                </div>
+            </div>
         </main>
 
         <div class="my-activity">
-            <h3 class="activity-heading">MY ACTIVITY</h3>
+            <h3 class="activity-heading">My activity</h3>
             <div class="progress-panel">
                 <p class="panel-label">Weekly Progress</p>
                 <p class="page-count"><span class="read">505</span>/1007 pages read</p>
                 <p class="date">started 2nd Nov 2025</p>
             </div>
             <div class="goal-btns">
-                <button class="primary">Set reading goal</button>
-                <button>Set pages goal</button>
-                <button>Set hours goal</button>
+                <button type="button" class="primary">Set reading goal</button>
+                <button type="button">Set pages goal</button>
+                <button type="button">Set hours goal</button>
             </div>
             <div class="total-books">
                 <i class="hgi hgi-stroke hgi-rounded hgi-bookshelf-03 books"></i>
